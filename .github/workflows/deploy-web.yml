@@ -23,15 +23,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Extract website project
+        run: |
+          unzip -o Plosbi_Social_APK_Ready_.zip
+          test -f butterfly-social/package.json
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
+        working-directory: butterfly-social
         run: npm install
 
       - name: Build web app
+        working-directory: butterfly-social
         run: npm run build
 
       - name: Configure Pages
@@ -40,7 +47,7 @@ jobs:
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: butterfly-social/dist
 
   deploy:
     environment:
