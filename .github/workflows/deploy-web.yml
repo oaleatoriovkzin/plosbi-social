@@ -1,10 +1,8 @@
-
 name: Deploy Web
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
@@ -25,21 +23,31 @@ jobs:
 
       - name: Extract website project
         run: |
-          unzip -o Plosbi_Social_APK_Ready_.zip
-          test -f butterfly-social/package.json
+          ZIP=$(ls Plosbi_Social_APK_Ready_*.zip | sort -V | tail -n 1)
+          echo "Usando: $ZIP"
+          unzip -q -o "$ZIP"
+          PKG=$(find . -maxdepth 3 -name package.json -not -path '*/node_modules/*' | head -n 1)
+          test -n "$PKG" || { echo "package.json nao encontrado no ZIP"; exit 1; }
+          echo "PROJ_DIR=$(dirname "$PKG")" >> "$GITHUB_ENV"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
-        working-directory: butterfly-social
+        working-directory: ${{ env.PROJ_DIR }}
         run: npm install
 
       - name: Build web app
-        working-directory: butterfly-social
-        run: npm run build
+        working-directory: ${{ env.PROJ_DIR }}
+        env:
+          VITE_SUPABASE_URL: https://tesynwdsrmhfpmttffjf.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_LoLSGreOvG0KTRkP53K5fg_S0xZKVsO
+        run: |
+          export VITE_SITE_URL="https://$(echo "$GITHUB_REPOSITORY_OWNER" | tr 'A-Z' 'a-z').github.io/${GITHUB_REPOSITORY#*/}/"
+          echo "Endereco do site: $VITE_SITE_URL"
+          npm run build -- --base=./
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -47,14 +55,14 @@ jobs:
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
-          path: butterfly-social/dist
+          path: ${{ env.PROJ_DIR }}/dist
 
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
