@@ -55,6 +55,20 @@ jobs:
         run: |
           cd "$PROJECT_DIR"
           npx cap add android
+          python3 - <<'PY'
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p, encoding='utf-8').read()
+          f = '''<intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data android:scheme="com.plosbi.social" android:host="auth-callback" />
+            </intent-filter>
+          </activity>'''
+          assert 'auth-callback' not in s
+          s = s.replace('</activity>', f, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          PY
           npx cap sync android
 
       - name: Configurar Java
