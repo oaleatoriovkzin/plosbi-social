@@ -1,4 +1,3 @@
-
 name: Build Plosbi Social APK
 
 on:
@@ -25,11 +24,15 @@ jobs:
       - name: Extrair projeto ZIP
         run: |
           mkdir -p _source
-          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          ZIP_FILE=$(ls Plosbi_Social_APK_Ready_*.zip 2>/dev/null | sort -V | tail -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          fi
           if [ -z "$ZIP_FILE" ]; then
             echo "Nenhum arquivo ZIP encontrado na raiz."
             exit 1
           fi
+          echo "Usando: $ZIP_FILE"
           unzip -o "$ZIP_FILE" -d _source
           PROJECT_DIR=$(dirname "$(find _source -name package.json -print -quit)")
           if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "_source" ]; then
@@ -39,6 +42,10 @@ jobs:
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Instalar dependencias e compilar
+        env:
+          VITE_SUPABASE_URL: https://tesynwdsrmhfpmttffjf.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_LoLSGreOvG0KTRkP53K5fg_S0xZKVsO
+          VITE_SITE_URL: https://oaleatoriovkzin.github.io/plosbi-social/
         run: |
           cd "$PROJECT_DIR"
           npm install
@@ -67,4 +74,3 @@ jobs:
         with:
           name: plosbi-social-apk
           path: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
-          
